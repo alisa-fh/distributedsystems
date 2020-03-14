@@ -1,0 +1,84 @@
+# saved as greeting-server.py
+import Pyro4
+
+@Pyro4.expose
+class Delivereat(object):
+    def __init__(self):
+        self.menu = [["Apple", 0.99], ["Smoked Salmon", 4], ["Frozen Pizza", 1.55], ["Chocolate Milkshake", 3]];
+        self.orders = [["john", "DH14PZ", "01022019", ["apple", "smoked salmon"]], ["enoch", "GU214JD", "05032019", ["apple"]]];
+        self.deliverObj1 = Pyro4.Proxy("PYRONAME:ns_delivereat1")
+        self.deliverObj2 = Pyro4.Proxy("PYRONAME:ns_delivereat2")
+
+    def getMenu(self):
+        return self.menu;
+
+    def updateOrders(self, updatedOrders):
+        try:
+            self.orders = updatedOrders
+        except:
+            print("Error updating orders")
+
+    def updateOthers(self):
+        finalOrders = self.orders
+        try:
+            orders1 = self.deliverObj1.getAllOrders()
+            for order in orders1:
+                if order not in self.orders:
+                    finalOrders.append(order)
+            self.orders = finalOrders
+        except:
+            orders1 = 0
+        try:
+            orders2 = self.deliverObj2.getAllOrders()
+            for order in orders2:
+                if order not in self.orders:
+                    finalOrders.append(order)
+        except:
+            orders2 = 0
+        if orders1 != 0:
+            self.deliverObj1.updateOrders(finalOrders)
+        if orders2 != 0:
+            self.deliverObj2.updateOrders(finalOrders)
+        self.orders = finalOrders
+
+
+
+    def getAllOrders(self):
+        return self.orders
+
+    def getOrders(self, name, postcode):
+        postcode = postcode.replace(" ", "")
+        postcode = postcode.upper()
+        orderArray = [];
+        for entry in self.orders:
+            if (entry[0] == name) and (entry[1] == postcode):
+                orderArray.append(entry)
+        return orderArray;
+
+    def makeOrder(self, itemList, name, postcode, currentTime):
+        postcode = postcode.replace(" ", "")
+        postcode = postcode.upper()
+        try:
+            formattedItemList = [];
+            for item in itemList:
+                formattedItemList.append(self.menu[int(item)-1][0]);
+            newOrder = [name, postcode, currentTime, formattedItemList];
+            self.orders.append(newOrder)
+            self.updateOthers()
+            return 1
+        except:
+            return -1
+
+Deliver = Delivereat()
+ns = Pyro4.locateNS()                  # find the name server
+try:
+    existing = ns.lookup("ns_delivereat0")
+    daemon = Pyro4.core.Daemon(port = existing.port)
+    daemon.register(Deliver, objectId=existing.port)
+except:
+    daemon = Pyro4.core.Daemon()
+    uri = daemon.register(Deliver)
+    ns.register("ns_delivereat0", uri)
+
+print("Ready.")
+daemon.requestLoop()                   # start the event loop of the server to wait for calls
