@@ -38,6 +38,11 @@ three back-end servers, two web service servers, and finally, the client program
 
 Follow the instructions provided by the client program to place and retrieve orders.
 
+The system implementation is described in the following diagram, 
+although this is not evident to the client user.
+
+![Just Hungry Implementation](./justhungry-workflow.png)
+
 # Web Services
 
 Two open-source postcode APIs were used in the implementation of my program in order
